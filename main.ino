@@ -18,12 +18,11 @@
   Either can be omitted if not used
 
   Development environment specifics:
-  Arduino IDE 1.6.4
-  Teensy loader 1.23
+  Arduino IDE 1.8.5
 
-  Hardware connections:
-  Connect I2C SDA line to A4
-  Connect I2C SCL line to A5
+  Hardware connections: (esp32)
+  Connect I2C SDA line to D21
+  Connect I2C SCL line to D22
   Connect GND and 3.3v power to the IMU
 
   This code is released under the [MIT License](http://opensource.org/licenses/MIT).
@@ -38,6 +37,11 @@
 
   23 mai 2019
   Test mqtt data publishing
+
+  11 juin 2019
+  Portage de arduino vers esp32
+  Creation d'un filter pour n'envoyer que les positions
+
 ******************************************************************************/
 #include "SparkFunLSM6DS3.h"
 #include "Wire.h"
@@ -82,7 +86,7 @@ void reconnect() {
   }
 }
 LSM6DS3 myIMU; //Default constructor is I2C, addr 0x6B
-
+//LSM6DS3 myIMU( SPI_MODE, 10 );
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -101,45 +105,17 @@ void loop()
 {
   char msg[30];
 
- if (!client.connected()) {
-   reconnect();
- }
+  float fx,fy,fz;
+  fx = myIMU.readFloatGyroX();
+  fy = myIMU.readFloatGyroY();
+  fz = myIMU.readFloatGyroZ();
 
-  //Get all parameters
-  Serial.print("Accelerometer:");
-  Serial.print(" X = ");
-  Serial.print(myIMU.readFloatAccelX(), 4);
-  Serial.print(" Y = ");
-  Serial.print(myIMU.readFloatAccelY(), 4);
-  Serial.print(" Z = ");
-  Serial.println(myIMU.readFloatAccelZ(), 4);
-  sprintf(msg, "%d:%.4f:%.4f:%.4f" , millis(), myIMU.readFloatAccelX(), myIMU.readFloatAccelY(), myIMU.readFloatAccelZ());
-  client.publish("Accelerometer", msg);
-  delay(100);
+  if(fy < fx || fy < fz){
+    Serial.println("Debout");
+  }else{
+    Serial.println("Couche");
+  }
 
-  Serial.print("Gyroscope:");
-
-  Serial.print(millis());
-  Serial.print(";");
-  Serial.print(myIMU.readFloatGyroX(), 4);
-  Serial.print(";");
-  Serial.print(myIMU.readFloatGyroY(), 4);
-  Serial.print(";");
-  Serial.println(myIMU.readFloatGyroZ(), 4);
-
- sprintf(msg, "%d:%.4f:%.4f:%.4f" , millis(), myIMU.readFloatGyroX(), myIMU.readFloatGyroY(), myIMU.readFloatGyroZ());
- client.publish("Gyroscope", msg);
- delay(100);
- 
- Serial.print("Thermometer:");
- 
- Serial.print(" Degrees C = ");
- Serial.print(myIMU.readTempC(), 4);
- Serial.print(" Degrees F = ");
- Serial.println(myIMU.readTempF(), 4);
- sprintf(msg, "%d:%.4f:%.4f" , millis(), myIMU.readTempC(), myIMU.readTempF());
- client.publish("Thermometer", msg);
-
-  delay(100);
+  delay(2000);
 }
 
